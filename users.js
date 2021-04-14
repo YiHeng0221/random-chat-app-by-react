@@ -1,44 +1,71 @@
-const users = [];
-const usersInRoom = [];
+let users = [];
+let usersInLobby = [];
+let usersInPassword = [];
+let usersInRandom = [];
+let passwordRooms = [];
+let randomRooms = [];
 
 const addUser = ({ id, name }) => {
   name = name.trim().toLowerCase();
-
   const existingUser = users.find((user) => user.name === name);
   if (existingUser) {
     return { error: "Username is taken" };
   }
   const user = { id, name };
-
   users.push(user);
   return { user };
 };
 
 const getUserCounts = () => {
   return {
-    lobbyCounts: usersInRoom.filter((user) => user.roomInfo.mode === "lobby")
-      .length,
-    passwordCounts: usersInRoom.filter(
-      (user) => user.roomInfo.mode === "password"
-    ).length,
-    randomCounts: usersInRoom.filter((user) => user.roomInfo.mode === "random")
-      .length,
+    lobbyCounts: usersInLobby.length,
+    passwordCounts: usersInPassword.length,
+    randomCounts: usersInRandom.length,
   };
 };
 
 const userJoinRoom = (userInfo, roomInfo) => {
   const user = { userInfo, roomInfo };
-  console.log("userJoinRoom", user);
-  console.log("allusers", users);
-  usersInRoom.push(user);
-  console.log("joinroomusers", usersInRoom);
-  return { user };
+  let roomArray;
+  switch (roomInfo.mode) {
+    case "lobby":
+      usersInLobby.push(user);
+      return (roomArray = usersInLobby);
+    case "password":
+      usersInPassword.push(user);
+      return (roomArray = usersInPassword);
+    case "random":
+      usersInRandom.push(user);
+      return (roomArray = usersInRandom);
+    default:
+      break;
+  }
 };
 
-const removeUser = (userInfo, roomInfo) => {
-  console.log(userInfo, roomInfo);
-  usersInRoom.filter((user) => user.userInfo.id === userInfo.id);
-  return usersInRoom;
+const removeUserFromRoom = (userInfo, roomInfo) => {
+  if (roomInfo.mode === "lobby") {
+    usersInLobby = usersInLobby.filter(
+      (user) => user.userInfo.id !== userInfo.id
+    );
+    return usersInLobby;
+  } else if (roomInfo.mode === "password") {
+    usersInPassword = usersInPassword.filter(
+      (user) => user.userInfo.id !== userInfo.id
+    );
+    return usersInPassword;
+  } else {
+    usersInRandom = usersInRandom.filter(
+      (user) => user.userInfo.id !== userInfo.id
+    );
+    return usersInRandom;
+  }
+};
+
+const removeUser = (userInfo) => {
+  users = users.filter((user) => {
+    user.id !== userInfo.id;
+  });
+  return users;
 };
 
 const getUser = (id) => {
@@ -47,17 +74,61 @@ const getUser = (id) => {
   });
 };
 
-const getUsersInRoom = (room) => {
-  users.filter((user) => {
-    user.room === room;
-  });
+const isNobodyInside = (roomInfo) => {
+  const findInPassword = usersInPassword.find(
+    (user) => user.roomInfo.room === roomInfo.room
+  );
+
+  const findInRandom = usersInRandom.find(
+    (user) => user.roomInfo.room === roomInfo.room
+  );
+  if (roomInfo.mode === "password") {
+    if (!findInPassword) {
+      passwordRooms.splice(roomInfo.room);
+    }
+  }
+  if (roomInfo.mode === "random") {
+    if (!findInRandom) {
+      randomRooms = randomRooms.filter((room) => room.room !== roomInfo.room);
+    }
+  }
+};
+
+// password
+const isPasswordRoomExist = (password) => {
+  if (passwordRooms.find((room) => room === password)) {
+    return true;
+  } else {
+    return false;
+  }
+};
+
+const addPasswordRoom = (password) => {
+  passwordRooms.push(password);
+};
+
+// random
+const getRandomRoomNum = () => {
+  const avaliableRoom = randomRooms.find((randomRoom) => randomRoom.flag === 0);
+  if (!avaliableRoom) {
+    const nums = Math.floor(Math.random() * 10000).toString();
+    randomRooms.push({ room: nums, flag: 0 });
+    return nums;
+  } else {
+    avaliableRoom.flag = 1;
+    return avaliableRoom.room;
+  }
 };
 
 module.exports = {
+  getRandomRoomNum,
+  isPasswordRoomExist,
+  addPasswordRoom,
   addUser,
+  removeUserFromRoom,
   removeUser,
   getUser,
-  getUsersInRoom,
   userJoinRoom,
   getUserCounts,
+  isNobodyInside,
 };
